@@ -7,23 +7,24 @@ jobs:
     steps:
     - name: checkout
       uses: actions/checkout@v4.1.0
-    - name: echo message
-      run: "echo è¿\x99æ\x98¯ä¸\x80ä¸ªæµ\x8Bè¯\x95"
+    - name: Access output files
+      run: |
+        cat $GITHUB_WORKSPACE/output/audit_summary.md || echo "File not found"
   Stage2:
     runs-on: ubuntu-latest
     needs: Hello
     steps:
     - name: checkout
       uses: actions/checkout@v4.1.0
-    - name: echo message
-      run: "echo ç¬¬äº\x8Cé\x98¶æ®µ"
+    - name: List all files in workspace
+      run: |
+        echo "Current workspace: $GITHUB_WORKSPACE"
+        ls -R $GITHUB_WORKSPACE
   Stage3:
     runs-on: ubuntu-latest
     needs: Stage2
     steps:
     - name: checkout
       uses: actions/checkout@v4.1.0
-    - name: echo message
-      run: "echo ç¬¬ä¸\x89é\x98¶æ®µ"
     - name: List files in default workspace
       run: ls -al $GITHUB_WORKSPACE
