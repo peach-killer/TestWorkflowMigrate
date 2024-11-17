@@ -25,3 +25,5 @@ jobs:
       uses: actions/checkout@v4.1.0
     - name: echo message
       run: "echo ç¬¬ä¸\x89é\x98¶æ®µ"
+    - name: List files in default workspace
+      run: ls -al $GITHUB_WORKSPACE
