@@ -1,0 +1,12 @@
+name: test4
+on:
+  workflow_dispatch:
+jobs:
+  Print_Build_Number:
+    name: Print Build Number
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: echo message
+      run: 'echo "Build number is: ${{ env.BUILD_NUMBER }}"'
