@@ -11,11 +11,9 @@ jobs:
     - name: sh
       shell: bash
       run: npm install
-      working-directory: module-a
     - name: sh
       shell: bash
       run: npm test
-      working-directory: module-a
   Build_and_Test_Module_B:
     name: Build and Test Module B
     runs-on: ubuntu-latest
@@ -26,8 +24,6 @@ jobs:
     - name: sh
       shell: bash
       run: npm install
-      working-directory: module-b
     - name: sh
       shell: bash
       run: npm test
-      working-directory: module-b
