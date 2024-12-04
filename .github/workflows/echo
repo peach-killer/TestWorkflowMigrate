@@ -1,0 +1,5 @@
+jobs:
+  runs-on: ubuntu-latest
+  job-name:
+    - name: echo message
+      run: echo "This is a message"
