@@ -1,5 +1,17 @@
 jobs:
-  runs-on: ubuntu-latest
-  job-name: echo message
-    - name: echo message
-      run: echo "This is a message"
+  print-messages:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Print Hello Message      
+      run: echo "Hello, World!"
+    - name: Print Goodbye Message 
+      run: echo "Goodbye, World!"
+
+jobs:
+  pull-repository:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+      with:
+        repository: 'https://github.com'
