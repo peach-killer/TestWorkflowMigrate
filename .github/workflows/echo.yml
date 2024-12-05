@@ -2,9 +2,9 @@ jobs:
   print-messages:
     runs-on: ubuntu-latest
     steps:
-    - name: Print Hello Message      
+    - name:    
       run: echo "Hello, World!"
-    - name: Print Goodbye Message 
+    - name:
       run: echo "Goodbye, World!"
 
 jobs:
