@@ -1,13 +1,16 @@
+on:
+  push:
+    branches: [main]
+    
 jobs:
   print-messages:
     runs-on: ubuntu-latest
     steps:
-    - name:    
+    - name: "echo"
       run: echo "Hello, World!"
-    - name:
+    - name: "echo"
       run: echo "Goodbye, World!"
 
-jobs:
   pull-repository:
     runs-on: ubuntu-latest
     steps:
