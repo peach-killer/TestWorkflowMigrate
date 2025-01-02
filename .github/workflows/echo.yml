@@ -17,4 +17,4 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v2
       with:
-        repository: 'https://github.com/peach-killer/TestWorkflowMigrate.git'
+        repository: 'https://github.com/peach-killer/TestWorkflowMigrate'
