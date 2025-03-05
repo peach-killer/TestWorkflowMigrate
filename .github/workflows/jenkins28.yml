@@ -1,0 +1,35 @@
+name: jenkins28
+on:
+  workflow_dispatch:
+jobs:
+  Checkout:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+  Setup_Environment:
+    name: Setup Environment
+    runs-on: ubuntu-latest
+    needs: Checkout
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+#     # 'script' was not transformed because there is no suitable equivalent in GitHub Actions
+#     - name: script
+#       arguments:
+#       - key: scriptBlock
+#         value:
+#           isLiteral: true
+#           value: govuk.initialize()
+  Run_tests:
+    name: Run tests
+    runs-on: ubuntu-latest
+    needs: Setup_Environment
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: GOVUK_DOCKER_DIR=. make test
