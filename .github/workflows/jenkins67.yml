@@ -1,0 +1,71 @@
+name: jenkins67
+on:
+  workflow_dispatch:
+jobs:
+  Test_Windows:
+    name: Test-Windows
+    runs-on:
+      - self-hosted
+      - windows
+    env:
+#       # This item has no matching transformer
+#       PATH: '"C:\\tools\\msys64\\mingw64\\bin;${pwd()}\\.ci_bin;${{ env.PATH }}"'
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: bat
+      shell: cmd
+      run: go test ./...
+      working-directory: go/
+    - name: bat
+      shell: cmd
+      run: go build -mod=readonly -o ..\.ci_bin\dolt.exe ./cmd/dolt/.
+      working-directory: go/
+    - name: bat
+      shell: cmd
+      run: copy /Y ..\.ci_bin\dolt.exe ..\.ci_bin\dolt
+      working-directory: go/
+    - name: bat
+      shell: cmd
+      run: go build -mod=readonly -o ..\.ci_bin\git-dolt.exe ./cmd/git-dolt/.
+      working-directory: go/
+    - name: bat
+      shell: cmd
+      run: copy /Y ..\.ci_bin\git-dolt.exe ..\.ci_bin\git-dolt
+      working-directory: go/
+    - name: bat
+      shell: cmd
+      run: go build -mod=readonly -o ..\.ci_bin\git-dolt-smudge.exe ./cmd/git-dolt-smudge/.
+      working-directory: go/
+    - name: bat
+      shell: cmd
+      run: copy /Y ..\.ci_bin\git-dolt-smudge.exe ..\.ci_bin\git-dolt-smudge
+      working-directory: go/
+    - name: bat
+      shell: cmd
+      run: go build -mod=readonly -o ..\.ci_bin\remotesrv.exe ./utils/remotesrv/.
+      working-directory: go/
+    - name: bat
+      shell: cmd
+      run: copy /Y ..\.ci_bin\remotesrv.exe ..\.ci_bin\remotesrv
+      working-directory: go/
+    - name: bat
+      shell: cmd
+      run: dolt config --global --add user.name "Liquidata Jenkins"
+      working-directory: bats/
+    - name: bat
+      shell: cmd
+      run: dolt config --global --add user.email "jenkins@liquidata.co"
+      working-directory: bats/
+    - name: bat
+      shell: cmd
+      run: C:\wsl.exe bats `pwd`
+      working-directory: bats/
+    - name: bat
+      shell: cmd
+      run: setLocal EnableDelayedExpansion && pushd %LOCALAPPDATA%\Temp && del /q/f/s .\* >nul 2>&1 && rmdir /s/q . >nul 2>&1 && popd
+      working-directory: "./"
+    - name: bat
+      shell: cmd
+      run: setLocal EnableDelayedExpansion && pushd C:\batstmp && del /q/f/s .\* >nul 2>&1 && rmdir /s/q . >nul 2>&1 && popd
+      working-directory: "./"
