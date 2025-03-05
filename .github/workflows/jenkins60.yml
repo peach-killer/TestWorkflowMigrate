@@ -1,0 +1,275 @@
+name: jenkins60
+on:
+  workflow_dispatch:
+jobs:
+  Setup_Set_build_version:
+    name: Setup-Set build version
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: 'echo "Stage Description: Set build version from package.json"'
+#     # 'script' was not transformed because there is no suitable equivalent in GitHub Actions
+#     - name: script
+#       arguments:
+#       - key: scriptBlock
+#         value:
+#           isLiteral: true
+#           value: |-
+#             n.export()
+#                             build_version = readFile('version')
+  Setup_Setup_Docker:
+    name: Setup-Setup Docker
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: 'echo "Stage Description: Sets up docker image for use in the next stages"'
+    - name: sh
+      shell: bash
+      run: rm -rf build; mkdir build -p
+    - name: sh
+      shell: bash
+      run: '"docker build -t ${{ env.docker_tag }} -f Dockerfile ."'
+    - name: sh
+      shell: bash
+      run: '"docker run --rm -t -d --name=${{ env.docker_tag }} ${{ env.docker_tag }}"'
+  Testing_Lint_for_errors:
+    name: Testing-Lint for errors
+    runs-on: ubuntu-latest
+    needs:
+    - Setup_Set_build_version
+    - Setup_Setup_Docker
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: 'echo "Stage Description: Lints the project for common js errors and formatting"'
+    - name: sh
+      shell: bash
+      run: '"docker exec ${{ env.docker_tag }} npm run lint"'
+  Testing_Unit_Tests:
+    name: Testing-Unit Tests
+    runs-on: ubuntu-latest
+    needs:
+    - Setup_Set_build_version
+    - Setup_Setup_Docker
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: 'echo "Stage Description: Runs unit tests and fails if they do not meet coverage expectations"'
+    - name: sh
+      shell: bash
+      run: '"docker exec ${{ env.docker_tag }} npm run test:coverage"'
+  Build:
+    runs-on: ubuntu-latest
+    needs:
+    - Testing_Lint_for_errors
+    - Testing_Unit_Tests
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: 'echo "Stage Description: Builds the production version of the app"'
+    - name: sh
+      shell: bash
+      run: '"docker exec ${{ env.docker_tag }} npm run build"'
+    - name: sh
+      shell: bash
+      run: '"docker cp ${{ env.docker_tag }}:/home/node/app/build build"'
+  Preview_PR_dev_and_Automation_Tests:
+    if: github.event_name == 'pull_request'
+    name: Preview PR (dev) and Automation Tests
+    runs-on: ubuntu-latest
+    needs: Build
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: '"echo ''Stage Description: Creates a temp build of the site in dev to review the changes, PR: ${{ env.pr }}''"'
+    - name: sh
+      shell: bash
+      run: '"aws s3 rm s3://frontend-prs.cxengagelabs.net/config2/${{ env.pr }}/ --recursive"'
+    - name: sh
+      shell: bash
+      run: '"aws s3 sync build/build/ s3://frontend-prs.cxengagelabs.net/config2/${{ env.pr }}/ --delete"'
+    - name: sh
+      shell: bash
+      run: '"docker exec ${{ env.docker_tag }} /bin/bash -c ''export URI=https://frontend-prs.cxengagelabs.net/config2/${{ env.pr }}/index.html#/ && npm run test:preMerge''"'
+#     # 'script' was not transformed because there is no suitable equivalent in GitHub Actions
+#     - name: script
+#       arguments:
+#       - key: scriptBlock
+#         value:
+#           isLiteral: true
+#           value: f.invalidate("E23K7T1ARU8K88")
+  Github_tagged_release:
+    if:
+#       # Unsupported condition(s) [anyOf]
+    name: Github tagged release
+    runs-on: ubuntu-latest
+    needs: Preview_PR_dev_and_Automation_Tests
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: echo "Makes a github tagged release under a new branch with the same name as the tag version"
+#     # There was an internal error transforming this item
+#     # Message: Unable to parse GitHub repository URL. Ensure it is in the format of https://github.com/:owner_name/:repo_name
+#     - git:
+#         name: git
+#         arguments:
+#         - key: url
+#           value:
+#             isLiteral: false
+#             value: '"git@github.com:SerenovaLLC/${{ env.service }}"'
+    - name: sh
+      shell: bash
+      run: '"git checkout -b build-${{ github.workflow }}-${{ github.run_id }}"'
+#     # 'script' was not transformed because there is no suitable equivalent in GitHub Actions
+#     - name: script
+#       arguments:
+#       - key: scriptBlock
+#         value:
+#           isLiteral: true
+#           value: |-
+#             if (build_version.contains("SNAPSHOT")) {
+#                         sh "if git tag --list | grep ${{ env.build_version }}; then git tag -d ${{ env.build_version }}; git push origin :refs/tags/${{ env.build_version }}; fi"
+#                       }
+    - name: sh
+      shell: bash
+      run: '"git tag -a ${{ env.build_version }} -m ''release ${{ env.build_version }}, Jenkins tagged ${{ github.workflow }}-${{ github.run_id }}''"'
+    - name: sh
+      shell: bash
+      run: '"git push origin ${{ env.build_version }}"'
+  Create_dev_build:
+    if:
+#       # Unsupported condition(s) [anyOf]
+    name: Create dev build
+    runs-on: ubuntu-latest
+    needs: Github_tagged_release
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: 'echo "Stage Description: Pushes built app to S3"'
+    - name: sh
+      shell: bash
+      run: cp config/dev/config.json build
+    - name: sh
+      shell: bash
+      run: '"aws s3 sync build/build/ s3://frontend-prs.cxengagelabs.net/dev/builds/config2/${{ env.build_version }}/ --delete"'
+  Create_qe_build:
+    if:
+#       # Unsupported condition(s) [anyOf]
+    name: Create qe build
+    runs-on: ubuntu-latest
+    needs: Create_dev_build
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: 'echo "Stage Description: Pushes built app to S3"'
+    - name: sh
+      shell: bash
+      run: cp config/qe/config.json build
+    - name: sh
+      shell: bash
+      run: '"aws s3 sync build/build/ s3://frontend-prs.cxengagelabs.net/qe/builds/config2/${{ env.build_version }}/ --delete"'
+  Save_and_Publish_Publish_specs_to_npm:
+    name: Save and Publish-Publish specs to npm
+    runs-on: ubuntu-latest
+    needs: Create_qe_build
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: 'echo "Stage Description: Publishes the automation folder to npm so you can run the tests from other projects"'
+    - name: sh
+      shell: bash
+      run: '"docker exec ${{ env.docker_tag }} npm publish"'
+  Save_and_Publish_Store_in_S3:
+    name: Save and Publish-Store in S3
+    runs-on: ubuntu-latest
+    needs: Create_qe_build
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: 'echo "Stage Description: Syncs a copy of the build folder to > s3://cxengagelabs-jenkins/frontend/{{service}}/{{version}}/"'
+    - name: sh
+      shell: bash
+      run: '"aws s3 sync ./build/build s3://cxengagelabs-jenkins/frontend/${{ env.service }}/${{ env.build_version }}/ --delete"'
+  Deploy_to_Dev:
+    if:
+#       # Unsupported condition(s) [anyOf]
+    name: Deploy to Dev
+    runs-on: ubuntu-latest
+    needs:
+    - Save_and_Publish_Publish_specs_to_npm
+    - Save_and_Publish_Store_in_S3
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+#     # This action relies on the workflow 'Deploy - Front-End.yml' being present in this repository (change the repository parameter if the workflow is in a different repository).
+#     # Ensure that the workflow exists, has the workflow_dispatch trigger, and has matching input parameters.
+#     - name: Trigger workflow
+#       uses: octokit/request-action@v2.1.9
+#       env:
+#         GITHUB_TOKEN: "${{ secrets.WORKFLOW_TRIGGER_TOKEN }}"
+#       with:
+#         route: POST /repos/:repository/actions/workflows/:workflow_id/dispatches
+#         repository: "${{ github.repository }}"
+#         workflow_id: Deploy - Front-End.yml
+#         ref: "${{ github.ref }}"
+  Post-Build:
+    if: always()
+    name: Post Build
+    runs-on: ubuntu-latest
+    needs:
+    - Setup_Set_build_version
+    - Setup_Setup_Docker
+    - Testing_Lint_for_errors
+    - Testing_Unit_Tests
+    - Build
+    - Preview_PR_dev_and_Automation_Tests
+    - Github_tagged_release
+    - Create_dev_build
+    - Create_qe_build
+    - Save_and_Publish_Publish_specs_to_npm
+    - Save_and_Publish_Store_in_S3
+    - Deploy_to_Dev
+    steps:
+    - name: snapshot post build workflow status
+      run: echo "unstable=${{ contains(needs.*.result,'failure') && !contains(needs.*.result,'cancelled') }}" >> $GITHUB_OUTPUT
+      id: post_build
+    - name: echo message
+      run: echo This will run only if the run was marked as unstable
+      if: steps.post_build.outputs.unstable == 'true'
+    - name: sh
+      shell: bash
+      run: '"docker rmi ${{ env.docker_tag }} --force"'
+      if: always()
+#     # 'script' was not transformed because there is no suitable equivalent in GitHub Actions
+#     - name: script
+#       arguments:
+#       - key: scriptBlock
+#         value:
+#           isLiteral: true
+#           value: c.cleanup()
+#       if: always()
+#     # post condition changed not supported
