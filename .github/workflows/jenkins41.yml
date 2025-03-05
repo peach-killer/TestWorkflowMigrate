@@ -1,0 +1,53 @@
+name: jenkins41
+on:
+  schedule:
+  - cron: 39 17 * * *
+jobs:
+  Create_docker_container:
+    name: Create docker container
+    runs-on:
+      - self-hosted
+      - linux
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: make build
+      env:
+        GH_TOKEN: "${{ secrets.GITHUB_ACCESS_TOKEN_GH_TOKEN }}"
+  Build_and_release:
+    name: Build and release
+    runs-on:
+      - self-hosted
+      - linux
+    env:
+      GH_USERNAME: lime-ci
+#       # This item has no matching transformer
+#       GH_TOKEN:
+#       # This item has no matching transformer
+#       NPM_TOKEN:
+      CI: true
+    needs: Create_docker_container
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+#     # 'script' was not transformed because there is no suitable equivalent in GitHub Actions
+#     - name: script
+#       arguments:
+#       - key: scriptBlock
+#         value:
+#           isLiteral: true
+#           value: |-
+#             if (env.BRANCH_NAME == 'master' || (env.BRANCH_NAME.length() > 8 && env.BRANCH_NAME.substring(0,8) == 'release-')) {
+#                                     echo 'On master or release-branch. Running release step.'
+#                                     sh 'make release'
+#                                 } else {
+#                                     if (env.BRANCH_NAME.substring(0,3) == 'PR-') {
+#                                         echo 'On PR branch. Running release step in dry-run mode.'
+#                                     } else {
+#                                         echo('Unknown branch type. Running release step in dry-run mode.')
+#                                     }
+#                                     sh "make release_dry_run BRANCH=${{ env.BRANCH_NAME }}"
+#
+#                                 }
