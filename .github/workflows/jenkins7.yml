@@ -1,0 +1,17 @@
+name: jenkins7
+on:
+  workflow_dispatch:
+jobs:
+  Build_Project:
+    name: Build Project
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+#     # 'script' was not transformed because there is no suitable equivalent in GitHub Actions
+#     - name: script
+#       arguments:
+#       - key: scriptBlock
+#         value:
+#           isLiteral: true
+#           value: 'govuk.buildProject(skipDeployToIntegration: true)'
