@@ -1,0 +1,108 @@
+name: jenkins33
+on:
+  workflow_dispatch:
+jobs:
+  Install_Composer:
+    name: Install-Composer
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: docker run -v $WORKSPACE:/app -v /var/lib/jenkins/.composer-cache:/.composer:rw itkdev/php7.2-fpm:latest composer install
+  Install_Yarn:
+    name: Install-Yarn
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: docker run -v $WORKSPACE:/app -v /var/lib/jenkins/.yarn-cache:/usr/local/share/.cache/yarn:rw itkdev/yarn:latest install
+  Deployment_staging:
+    if: github.ref == 'refs/heads/release'
+    name: Deployment staging
+    runs-on: ubuntu-latest
+    needs:
+    - Install_Composer
+    - Install_Yarn
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: ansible admwebitk01 -m shell -a 'cd /data/www/stg_kontrolgruppen_itkdev_dk/htdocs; git clean -d --force'
+    - name: sh
+      shell: bash
+      run: '"ansible admwebitk01 -m shell -a ''cd /data/www/stg_kontrolgruppen_itkdev_dk/htdocs; git checkout ${{ env.BRANCH_NAME }}''"'
+    - name: sh
+      shell: bash
+      run: ansible admwebitk01 -m shell -a 'cd /data/www/stg_kontrolgruppen_itkdev_dk/htdocs; git fetch'
+    - name: sh
+      shell: bash
+      run: '"ansible admwebitk01 -m shell -a ''cd /data/www/stg_kontrolgruppen_itkdev_dk/htdocs; git reset origin/${{ env.BRANCH_NAME }} --hard''"'
+    - name: sh
+      shell: bash
+      run: ansible admwebitk01 -m shell -a 'cd /data/www/stg_kontrolgruppen_itkdev_dk/htdocs; APP_ENV=prod composer install --no-dev -o'
+    - name: sh
+      shell: bash
+      run: ansible admwebitk01 -m shell -a 'cd /data/www/stg_kontrolgruppen_itkdev_dk/htdocs; APP_ENV=prod php bin/console doctrine:migrations:migrate --no-interaction'
+    - name: sh
+      shell: bash
+      run: '"ansible admwebitk01 -m synchronize -a ''src=${{ github.workspace }}/public/build/ dest=/data/www/stg_kontrolgruppen_itkdev_dk/htdocs/public/build''"'
+    - name: sh
+      shell: bash
+      run: ansible admwebitk01 -m shell -a 'cd /data/www/stg_kontrolgruppen_itkdev_dk/htdocs; APP_ENV=prod php bin/console cache:clear'
+  Deployment_production:
+    if: github.ref == 'refs/heads/master'
+    name: Deployment production
+    environment:
+      name: approval_required
+    runs-on: ubuntu-latest
+    needs: Deployment_staging
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: ansible srvappkongruppe -m shell -a 'cd /data/www/tjek1_aarhuskommune_dk/htdocs; git clean -d --force'
+    - name: sh
+      shell: bash
+      run: '"ansible srvappkongruppe -m shell -a ''cd /data/www/tjek1_aarhuskommune_dk/htdocs; git checkout ${{ env.BRANCH_NAME }}''"'
+    - name: sh
+      shell: bash
+      run: ansible srvappkongruppe -m shell -a 'cd /data/www/tjek1_aarhuskommune_dk/htdocs; git fetch'
+    - name: sh
+      shell: bash
+      run: '"ansible srvappkongruppe -m shell -a ''cd /data/www/tjek1_aarhuskommune_dk/htdocs; git reset origin/${{ env.BRANCH_NAME }} --hard''"'
+    - name: sh
+      shell: bash
+      run: ansible srvappkongruppe -m shell -a 'cd /data/www/tjek1_aarhuskommune_dk/htdocs; APP_ENV=prod composer install --no-dev -o'
+    - name: sh
+      shell: bash
+      run: ansible srvappkongruppe -m shell -a 'cd /data/www/tjek1_aarhuskommune_dk/htdocs; APP_ENV=prod php bin/console doctrine:migrations:migrate --no-interaction'
+    - name: sh
+      shell: bash
+      run: '"ansible srvappkongruppe -m synchronize -a ''src=${{ github.workspace }}/public/prod dest=/data/www/tjek1_aarhuskommune_dk/htdocs/public/''"'
+    - name: sh
+      shell: bash
+      run: ansible srvappkongruppe -m shell -a 'cd /data/www/tjek1_aarhuskommune_dk/htdocs; APP_ENV=prod php bin/console cache:clear'
+  Post-Build:
+    if: always()
+    name: Post Build
+    runs-on: ubuntu-latest
+    needs:
+    - Install_Composer
+    - Install_Yarn
+    - Deployment_staging
+    - Deployment_production
+    steps:
+#     # 'script' was not transformed because there is no suitable equivalent in GitHub Actions
+#     - name: script
+#       arguments:
+#       - key: scriptBlock
+#         value:
+#           isLiteral: true
+#           value: slackNotifier(currentBuild.currentResult)
+#       if: always()
