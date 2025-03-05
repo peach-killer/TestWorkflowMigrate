@@ -1,0 +1,43 @@
+name: jenkins40
+on:
+  workflow_dispatch:
+jobs:
+  Maven_Clean_Build_Deploy:
+    name: Maven Clean Build & Deploy
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: Set up JDK 1.11
+      uses: actions/setup-java@v4.0.0
+      with:
+        distribution: zulu
+        java-version: '1.11'
+        settings-path: "${{ github.workspace }}"
+    - name: sh
+      shell: bash
+      run: mvn clean deploy
+    - name: snapshot post build job status
+      run: |-
+        echo "success=${{ job.status == 'success' }}" >> $GITHUB_OUTPUT
+        echo "unstable=${{ job.status == 'failure' }}" >> $GITHUB_OUTPUT
+        echo "failure=${{ job.status == 'failure' }}" >> $GITHUB_OUTPUT
+      id: post_build
+    - uses: rtCamp/action-slack-notify@v2.2.1
+      env:
+        SLACK_WEBHOOK: "${{ secrets.SLACK_WEBHOOK }}"
+        SLACK_CHANNEL: "#jenkins"
+        SLACK_MESSAGE: '"BUILD UNSTABLE: ${currentBuild.fullDisplayName}\n${currentBuild.absoluteUrl}"'
+      if: steps.post_build.outputs.unstable == 'true'
+    - uses: rtCamp/action-slack-notify@v2.2.1
+      env:
+        SLACK_WEBHOOK: "${{ secrets.SLACK_WEBHOOK }}"
+        SLACK_CHANNEL: "#jenkins"
+        SLACK_MESSAGE: '"BUILD FAILURE: ${currentBuild.fullDisplayName}\n${currentBuild.absoluteUrl}"'
+      if: steps.post_build.outputs.failure == 'true'
+    - uses: rtCamp/action-slack-notify@v2.2.1
+      env:
+        SLACK_WEBHOOK: "${{ secrets.SLACK_WEBHOOK }}"
+        SLACK_CHANNEL: "#jenkins"
+        SLACK_MESSAGE: '"BUILD SUCCESS: ${currentBuild.fullDisplayName}\n${currentBuild.absoluteUrl}"'
+      if: steps.post_build.outputs.success == 'true'
