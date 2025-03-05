@@ -1,0 +1,29 @@
+name: jenkins32
+on:
+  workflow_dispatch:
+env:
+#   # This item has no matching transformer
+#   SANITIZED_BUILD_TAG: "${{ env.GIT_COMMIT }}${{ github.run_id }}"
+jobs:
+  Setup:
+    runs-on:
+      - self-hosted
+      - ansible-and-docker
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: pipenv install
+  Test:
+    runs-on:
+      - self-hosted
+      - ansible-and-docker
+    needs: Setup
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+#     # This item has no matching transformer
+#     - withEnv:
+#         isLiteral: false
+#         value: '${["DOCKER_REGISTRY_USERNAME=${{ env.REGISTRY_USERNAME }}", "DOCKER_REGISTRY_PASSWORD=${{ env.REGISTRY_PASSWORD }}", "INSTANCE_NAME_SUFFIX=-${{ env.SANITIZED_BUILD_TAG }}", "PATH+VENV=${sh(script: ''pipenv --venv'', returnStdout: true).trim()}/bin"]}'
