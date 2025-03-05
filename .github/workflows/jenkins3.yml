@@ -1,0 +1,152 @@
+name: jenkins3
+on:
+  workflow_dispatch:
+env:
+  REPOSITORY: govuk-aws
+jobs:
+  Checkout:
+    runs-on:
+      - self-hosted
+      - terraform
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+#     # 'script' was not transformed because there is no suitable equivalent in GitHub Actions
+#     - name: script
+#       arguments:
+#       - key: scriptBlock
+#         value:
+#           isLiteral: true
+#           value: govuk.checkoutFromGitHubWithSSH(env.REPOSITORY)
+  Bundle:
+    runs-on:
+      - self-hosted
+      - terraform
+    needs: Checkout
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+#     # 'script' was not transformed because there is no suitable equivalent in GitHub Actions
+#     - name: script
+#       arguments:
+#       - key: scriptBlock
+#         value:
+#           isLiteral: true
+#           value: govuk.bundleApp()
+  ADR_check:
+    name: ADR check
+    runs-on:
+      - self-hosted
+      - terraform
+    needs: Bundle
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: tools/adr-check.sh
+  Terraform_lint:
+    name: Terraform lint
+    runs-on:
+      - self-hosted
+      - terraform
+    needs: ADR_check
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: find . -name '*.tf' | xargs tools/terraform-format.sh
+  JSON_check:
+    name: JSON check
+    runs-on:
+      - self-hosted
+      - terraform
+    needs: Terraform_lint
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: find . -name '*.json' | xargs tools/json-check.sh
+  RSpec:
+    runs-on:
+      - self-hosted
+      - terraform
+    needs: JSON_check
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: bundle exec rspec spec/validate_resources_spec.rb
+  Resource_name_lint:
+    name: Resource name lint
+    runs-on:
+      - self-hosted
+      - terraform
+    needs: RSpec
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: bundle exec lib/resource_name_lint.rb
+  Push_release_tag:
+    if:
+#       # Unsupported condition(s) [expression]
+    name: Push release tag
+    runs-on:
+      - self-hosted
+      - terraform
+    needs: Resource_name_lint
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: echo message
+      run: echo Pushing tag
+#     # 'script' was not transformed because there is no suitable equivalent in GitHub Actions
+#     - name: script
+#       arguments:
+#       - key: scriptBlock
+#         value:
+#           isLiteral: true
+#           value: govuk.pushTag(env.REPOSITORY, env.BRANCH_NAME, "release_${{ env.BUILD_NUMBER }}")
+  Post-Build:
+    if: always()
+    name: Post Build
+    runs-on:
+      - self-hosted
+      - terraform
+    needs:
+    - Checkout
+    - Bundle
+    - ADR_check
+    - Terraform_lint
+    - JSON_check
+    - RSpec
+    - Resource_name_lint
+    - Push_release_tag
+    steps:
+    - name: snapshot post build workflow status
+      run: echo "failure=${{ contains(needs.*.result,'failure') && !contains(needs.*.result,'cancelled') }}" >> $GITHUB_OUTPUT
+      id: post_build
+#     # 'script' was not transformed because there is no suitable equivalent in GitHub Actions
+#     - name: script
+#       arguments:
+#       - key: scriptBlock
+#         value:
+#           isLiteral: true
+#           value: |-
+#             currentBuild.result = "FAILED"
+#                             step([
+#                                 $class: 'Mailer',
+#                                 notifyEveryUnstableBuild: true,
+#                                 recipients: 'govuk-ci-notifications@digital.cabinet-office.gov.uk',
+#                                 sendToIndividuals: true
+#                             ])
+#       if: steps.post_build.outputs.failure == 'true'
+    - name: delete directory
+      shell: bash
+      run: rm -rf "`pwd`"
+      if: always()
