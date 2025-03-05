@@ -1,0 +1,49 @@
+name: jenkins39
+on:
+  workflow_dispatch:
+env:
+  CGO_ENABLED: 1
+jobs:
+  Test:
+    runs-on:
+      - self-hosted
+      - lead-toolchain-goreleaser
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    # - The `container` step was transformed into the `goreleaser_ad7c5ffb-7ac0-457a-a4b7-50716ce6c444` job
+    #   which runs child steps in the corresponding container. Ensure that all steps that depend on this job,
+    #   such as accessing build artifacts, also run within the `goreleaser_ad7c5ffb-7ac0-457a-a4b7-50716ce6c444` job.
+  Build_Publish:
+    name: Build & Publish
+    runs-on:
+      - self-hosted
+      - lead-toolchain-goreleaser
+    needs: Test
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    # - The `container` step was transformed into the `goreleaser_1c8c5da5-284e-425b-8deb-c3b1843cd847` job
+    #   which runs child steps in the corresponding container. Ensure that all steps that depend on this job,
+    #   such as accessing build artifacts, also run within the `goreleaser_1c8c5da5-284e-425b-8deb-c3b1843cd847` job.
+  goreleaser_ad7c5ffb-7ac0-457a-a4b7-50716ce6c444:
+    container:
+#       # No container specification defined with label `goreleaser`. Please fix the Kubernetes manifest in your Jenkins pipeline or change the container label.
+    steps:
+    - name: sh
+      shell: bash
+      run: go test
+  goreleaser_1c8c5da5-284e-425b-8deb-c3b1843cd847:
+    container:
+#       # No container specification defined with label `goreleaser`. Please fix the Kubernetes manifest in your Jenkins pipeline or change the container label.
+    steps:
+    - name: sh
+      shell: bash
+      run: git fetch --tag
+#     # 'script' was not transformed because there is no suitable equivalent in GitHub Actions
+#     - name: script
+#       arguments:
+#       - key: scriptBlock
+#         value:
+#           isLiteral: true
+#           value: 'sh "goreleaser release --parallelism=1 ${BRANCH_NAME != ''master'' ? ''--skip-publish'' : ''''}"'
