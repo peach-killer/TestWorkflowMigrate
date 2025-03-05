@@ -1,0 +1,72 @@
+name: jenkins43
+on:
+  workflow_dispatch:
+jobs:
+  build_test_mock_linux:
+    name: build & test-mock_linux
+    runs-on:
+      - self-hosted
+      - safe_nd
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: make test
+  build_test_windows:
+    name: build & test-windows
+    runs-on:
+      - self-hosted
+      - windows
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: make test
+  build_test_osx:
+    name: build & test-osx
+    runs-on:
+      - self-hosted
+      - osx
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: make test
+  deploy:
+    runs-on:
+      - self-hosted
+      - safe_nd
+    needs:
+    - build_test_mock_linux
+    - build_test_windows
+    - build_test_osx
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+#     # 'script' was not transformed because there is no suitable equivalent in GitHub Actions
+#     - name: script
+#       arguments:
+#       - key: scriptBlock
+#         value:
+#           isLiteral: true
+#           value: |-
+#             if (env.BRANCH_NAME == "master") {
+#                                     if (versionChangeCommit()) {
+#                                         withCredentials([string(credentialsId: 'crates_io_token', variable: 'CRATES_IO_TOKEN')]) {
+#                                             sh "make publish"
+#                                         }
+#                                     }
+#                                 } else {
+#                                     echo "${{ env.BRANCH_NAME }} does not match deployment branch. Nothing to do."
+#                                 }
