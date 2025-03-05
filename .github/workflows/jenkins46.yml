@@ -1,0 +1,91 @@
+name: jenkins46
+on:
+  workflow_dispatch:
+env:
+#   # This item has no matching transformer
+#   QEMU_IRIX:
+#   # This item has no matching transformer
+#   ROMS_DIR:
+jobs:
+  Build_Tools:
+    name: Build Tools
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: make -j4 -C tools/
+  Extract_Assets:
+    name: Extract Assets
+    runs-on: ubuntu-latest
+    needs: Build_Tools
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: ln -s "$ROMS_DIR/Super Mario 64 (J) [!].z64" baserom.jp.z64
+    - name: sh
+      shell: bash
+      run: ln -s "$ROMS_DIR/Super Mario 64 (U) [!].z64" baserom.us.z64
+    - name: sh
+      shell: bash
+      run: ln -s "$ROMS_DIR/Super Mario 64 (E) (M3) [!].z64" baserom.eu.z64
+    - name: sh
+      shell: bash
+      run: '[ -z "$(find {actors,levels,textures}/ -name ''*.png'')" ]'
+    - name: sh
+      shell: bash
+      run: '[ -z "$(find assets/ -name ''*.m64'' -or ''*.bin'')" ]'
+    - name: sh
+      shell: bash
+      run: "./extract_assets.py jp us eu"
+  Build_U_Source:
+    name: Build U Source
+    runs-on: ubuntu-latest
+    needs: Extract_Assets
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: make -j4 VERSION=us
+  Build_E_Source:
+    name: Build E Source
+    runs-on: ubuntu-latest
+    needs: Build_U_Source
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: make -j4 VERSION=eu
+  Build_J_Source:
+    name: Build J Source
+    runs-on: ubuntu-latest
+    needs: Build_E_Source
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: make -j4 VERSION=jp
+  Test_Enhancements:
+    name: Test Enhancements
+    runs-on: ubuntu-latest
+    needs: Build_J_Source
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: |-
+        set -e
+        for f in enhancements/*.patch
+        do
+          git clean -fd .
+          git checkout -- .
+          echo 'y' | tools/apply_patch.sh "$f"
+          make -j4 VERSION=us COMPARE=0
+        done
