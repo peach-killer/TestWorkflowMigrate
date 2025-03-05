@@ -1,0 +1,93 @@
+name: jenkins66
+on:
+  workflow_dispatch:
+env:
+  registryCredential: dockerhub
+  dockerImage: antoinert/tonto
+jobs:
+  Decrypt_secrets:
+    name: Decrypt secrets
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+#     # 'script' was not transformed because there is no suitable equivalent in GitHub Actions
+#     - name: script
+#       arguments:
+#       - key: scriptBlock
+#         value:
+#           isLiteral: true
+#           value: sh 'sops -d --output-type json ./secrets/encrypted/variables.json > ./secrets/decrypted/variables.json'
+  Run_tests:
+    name: Run tests
+    runs-on: ubuntu-latest
+    needs: Decrypt_secrets
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+#     # 'script' was not transformed because there is no suitable equivalent in GitHub Actions
+#     - name: script
+#       arguments:
+#       - key: scriptBlock
+#         value:
+#           isLiteral: true
+#           value: sh 'docker-compose -f docker-compose.ci.yml up --abort-on-container-exit'
+  Build_image:
+    name: Build image
+    runs-on: ubuntu-latest
+    needs: Run_tests
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+#     # 'script' was not transformed because there is no suitable equivalent in GitHub Actions
+#     - name: script
+#       arguments:
+#       - key: scriptBlock
+#         value:
+#           isLiteral: true
+#           value: sh 'docker-compose build web'
+  Push_image_to_image_registry:
+    if:
+#       # Unsupported condition(s) [expression]
+    name: Push image to image registry
+    runs-on: ubuntu-latest
+    needs: Build_image
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+#     # 'script' was not transformed because there is no suitable equivalent in GitHub Actions
+#     - name: script
+#       arguments:
+#       - key: scriptBlock
+#         value:
+#           isLiteral: true
+#           value: |-
+#             docker.withRegistry('', registryCredential) {
+#                                     sh "docker push $dockerImage"
+#                                 }
+  Remove_local_docker_image:
+    name: Remove local docker image
+    runs-on: ubuntu-latest
+    needs: Push_image_to_image_registry
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: '"docker rmi -f $dockerImage"'
+  Launch_server:
+    if:
+#       # Unsupported condition(s) [expression]
+    name: Launch server
+    runs-on: ubuntu-latest
+    needs: Remove_local_docker_image
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+#     # 'script' was not transformed because there is no suitable equivalent in GitHub Actions
+#     - name: script
+#       arguments:
+#       - key: scriptBlock
+#         value:
+#           isLiteral: true
+#           value: sh 'docker-compose up -d'
