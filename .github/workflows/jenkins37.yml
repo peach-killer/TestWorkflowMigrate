@@ -1,0 +1,27 @@
+name: jenkins37
+on:
+  workflow_dispatch:
+jobs:
+  Build:
+    runs-on:
+      - self-hosted
+      - maven
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: "./gradlew clean javadoc check -x integrationTest --info"
+    - name: Publish test results
+      uses: EnricoMi/publish-unit-test-result-action@v2.12.0
+      if: always()
+      with:
+        junit_files: build/test-results/test/*.xml
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4.1.0
+      with:
+        name: SpotBugs
+        path: build/reports/spotbugs
+      if: always()
