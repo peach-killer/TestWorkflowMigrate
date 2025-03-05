@@ -1,0 +1,188 @@
+name: jenkins38
+on:
+  workflow_dispatch:
+env:
+  CCACHE_NOHASHDIR: 1
+  CCACHE_BASEDIR: "/mnt/data/jenkins/workspace"
+jobs:
+  Pre_build_ccache_stats:
+    name: Pre build ccache stats
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: ccache -s
+  Build_Build_kotekan_without_hardware_specific_options:
+    name: Build-Build kotekan without hardware specific options
+    runs-on: ubuntu-latest
+    needs: Pre_build_ccache_stats
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: |-
+        cd build/
+                          cmake -DCMAKE_BUILD_TYPE=Debug -DUSE_HDF5=ON -DHIGHFIVE_PATH=/opt/HighFive                   -DOPENBLAS_PATH=/opt/OpenBLAS/build -DUSE_LAPACK=ON -DBLAZE_PATH=/opt/blaze                   -DUSE_OMP=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache                   -DCMAKE_C_COMPILER_LAUNCHER=ccache ..
+                          make -j 4
+  Build_Build_CHIME_kotekan:
+    name: Build-Build CHIME kotekan
+    runs-on: ubuntu-latest
+    needs: Pre_build_ccache_stats
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: |-
+        mkdir -p chime-build
+                          cd chime-build
+                          cmake -DRTE_SDK=/opt/dpdk                   -DRTE_TARGET=x86_64-native-linuxapp-gcc -DUSE_DPDK=ON -DUSE_HSA=ON                   -DCMAKE_BUILD_TYPE=Debug -DUSE_HDF5=ON -DHIGHFIVE_PATH=/opt/HighFive                   -DOPENBLAS_PATH=/opt/OpenBLAS/build -DUSE_LAPACK=ON -DBLAZE_PATH=/opt/blaze                   -DUSE_OMP=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache                   -DCMAKE_C_COMPILER_LAUNCHER=ccache -DBOOST_TESTS=ON ..
+                          make -j 4
+  Build_Build_CHIME_kotekan_with_Clang:
+    name: Build-Build CHIME kotekan with Clang
+    runs-on: ubuntu-latest
+    needs: Pre_build_ccache_stats
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: |-
+        mkdir -p chime-build-clang
+                          cd chime-build-clang
+                          export CC=clang
+                          export CXX=clang++
+                          cmake -DRTE_SDK=/opt/dpdk                   -DRTE_TARGET=x86_64-native-linuxapp-gcc -DUSE_DPDK=ON -DUSE_HSA=ON                   -DCMAKE_BUILD_TYPE=Debug -DUSE_HDF5=ON -DHIGHFIVE_PATH=/opt/HighFive                   -DOPENBLAS_PATH=/opt/OpenBLAS/build -DUSE_LAPACK=ON -DBLAZE_PATH=/opt/blaze                   -DUSE_OMP=ON -DBOOST_TESTS=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache                   -DCMAKE_C_COMPILER_LAUNCHER=ccache ..
+                          make -j 4
+  Build_Build_base_kotekan:
+    name: Build-Build base kotekan
+    runs-on: ubuntu-latest
+    needs: Pre_build_ccache_stats
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: |-
+        mkdir -p build_base
+                          cd build_base
+                          cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache ..
+                          make -j 4
+  Build_Build_MacOS_kotekan:
+    name: Build-Build MacOS kotekan
+    runs-on:
+      - self-hosted
+      - macos
+    needs: Pre_build_ccache_stats
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: |-
+        export PATH=${{ env.PATH }}:/usr/local/bin/
+                          source ~/.bash_profile
+                          mkdir -p build_base
+                          cd build_base/
+                          cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ..
+                          make -j
+                          cd ..
+                          mkdir build_full
+                          cd build_full/
+                          cmake -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DUSE_FFTW=ON -DUSE_AIRSPY=ON                         -DUSE_LAPACK=ON -DBLAZE_PATH=/usr/local/opt/blaze                         -DOPENBLAS_PATH=/usr/local/opt/OpenBLAS                         -DUSE_HDF5=ON -DHIGHFIVE_PATH=/usr/local/opt/HighFive                         -DCOMPILE_DOCS=ON -DUSE_OPENCL=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache                         -DCMAKE_C_COMPILER_LAUNCHER=ccache ..
+                          make -j
+  Build_Build_docs:
+    name: Build-Build docs
+    runs-on: ubuntu-latest
+    needs: Pre_build_ccache_stats
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: |-
+        export PATH=${{ env.PATH }}:/var/lib/jenkins/.local/bin/
+                          mkdir -p build-docs
+                          cd build-docs/
+                          cmake -DCOMPILE_DOCS=ON -DPLANTUML_PATH=/opt/plantuml ..
+                          make doc
+                          make sphinx
+  Build_Check_code_formatting:
+    name: Build-Check code formatting
+    runs-on: ubuntu-latest
+    needs: Pre_build_ccache_stats
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: |-
+        mkdir -p build-check-format
+                          cd build-check-format/
+                          cmake ..
+                          make clang-format
+                          git diff --exit-code
+                          black --check --exclude docs ..
+  Build_Install_comet:
+    name: Build-Install comet
+    runs-on: ubuntu-latest
+    needs: Pre_build_ccache_stats
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+#     # This item has no matching transformer
+#     - catchError:
+#       - key: buildResult
+#         value:
+#           isLiteral: true
+#           value: SUCCESS
+#       - key: stageResult
+#         value:
+#           isLiteral: true
+#           value: FAILURE
+  Post_build_ccache_stats:
+    name: Post build ccache stats
+    runs-on: ubuntu-latest
+    needs:
+    - Build_Build_kotekan_without_hardware_specific_options
+    - Build_Build_CHIME_kotekan
+    - Build_Build_CHIME_kotekan_with_Clang
+    - Build_Build_base_kotekan
+    - Build_Build_MacOS_kotekan
+    - Build_Build_docs
+    - Build_Check_code_formatting
+    - Build_Install_comet
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: ccache -s
+  Unit_Tests_Python_Unit_Tests:
+    name: Unit Tests-Python Unit Tests
+    runs-on: ubuntu-latest
+    needs: Post_build_ccache_stats
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: |-
+        cd tests/
+                              PATH=~/.local/bin:$PATH PYTHONPATH=../python/ python3 -m pytest -n auto -x -vvv -m "not serial"
+                              PATH=~/.local/bin:$PATH PYTHONPATH=../python/ python3 -m pytest -x -vvv -m serial
+  Unit_Tests_Boost_Unit_Tests:
+    name: Unit Tests-Boost Unit Tests
+    runs-on: ubuntu-latest
+    needs: Post_build_ccache_stats
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: |-
+        cd chime-build/tests/
+                              python3 -m pytest -x -vvv
