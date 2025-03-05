@@ -1,0 +1,95 @@
+name: jenkins1
+on:
+  workflow_dispatch:
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+      with:
+        repository: 2206-devops-batch/ChrisB-Project1
+    - name: sh
+      shell: bash
+      run: python3 -m venv .venv && . .venv/bin/activate
+    - name: sh
+      shell: bash
+      run: python3 install -U pip && pip install -r requirements.txt
+  Test:
+    runs-on: ubuntu-latest
+    needs: Build
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: python3 -m pytest app_test.py
+  Deploy:
+    runs-on: ubuntu-latest
+    needs: Test
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4.1.0
+      with:
+        path: '"archiveArtifacts artifacts: ''$WORKSPACE/*''"'
+    - name: sh
+      shell: bash
+      run: docker system prune -af
+    - name: sh
+      shell: bash
+      run: '"docker build -t Project1 $WORKSPACE"'
+    - name: sh
+      shell: bash
+      run: docker-compose up -d
+  Discord:
+    runs-on: ubuntu-latest
+    needs: Deploy
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+#     # This item has no matching transformer
+#     - discordSend:
+#       - key: description
+#         value:
+#           isLiteral: true
+#           value: ''
+#       - key: enableArtifactsList
+#         value:
+#           isLiteral: true
+#           value: true
+#       - key: footer
+#         value:
+#           isLiteral: true
+#           value: ''
+#       - key: image
+#         value:
+#           isLiteral: true
+#           value: ''
+#       - key: link
+#         value:
+#           isLiteral: true
+#           value: env.BUILD_URL
+#       - key: result
+#         value:
+#           isLiteral: true
+#           value: SUCCESS
+#       - key: scmWebUrl
+#         value:
+#           isLiteral: true
+#           value: ''
+#       - key: thumbnail
+#         value:
+#           isLiteral: true
+#           value: ''
+#       - key: title
+#         value:
+#           isLiteral: true
+#           value: Project1
+#       - key: webhookURL
+#         value:
+#           isLiteral: true
+#           value: https://discord.com/api/webhooks/994018555341307966/V-Or2AnFnDNpfHa7slRrl2S0rhdybzYSnDNzKHVHgnKxJHCWG8iXWVQAPNjsa8hvHJ_q
