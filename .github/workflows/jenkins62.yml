@@ -1,0 +1,130 @@
+name: jenkins62
+on:
+  schedule:
+  - cron: "${env.BRANC17_NAME == 'main' ? '5 2 * * *' : ''}"
+env:
+#   # This item has no matching transformer
+#   ISOLATION_ID: "${sh(returnStdout: true, script: 'printf $BUILD_TAG | sha256sum | cut -c1-64').trim()}"
+#   # This item has no matching transformer
+#   COMPOSE_PROJECT_NAME: "${sh(returnStdout: true, script: 'printf $BUILD_TAG | sha256sum | cut -c1-64').trim()}"
+#   # This item has no matching transformer
+#   JENKINS_UID: '${sh(returnStdout: true, script: "id -u ${{ env.USER }}").trim()}'
+defaults:
+  run:
+    working-directory: '"workspace/${{ env.BUILD_TAG }}"'
+jobs:
+  Check_Whitelist:
+    if:
+#       # Unsupported condition(s) [not]
+    name: Check Whitelist
+    runs-on:
+      - self-hosted
+      - master
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+#     # This item has no matching transformer
+#     - readTrusted:
+#       - key: path
+#         value:
+#           isLiteral: true
+#           value: bin/whitelist
+    - name: sh
+      shell: bash
+      run: ./bin/whitelist "$CHANGE_AUTHOR" /etc/jenkins-authorized-builders
+  Check_for_Signed_Off_Commits:
+    name: Check for Signed-Off Commits
+    runs-on:
+      - self-hosted
+      - master
+    needs: Check_Whitelist
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: |-
+        #!/bin/bash -l
+                            if [ -v CHANGE_URL ] ;
+                            then
+                                temp_url="$(echo $CHANGE_URL |sed s#github.com/#api.github.com/repos/#)/commits"
+                                pull_url="$(echo $temp_url |sed s#pull#pulls#)"
+                                IFS=$'
+        '
+                                for m in $(curl -s "$pull_url" | grep "message") ; do
+                                    if echo "$m" | grep -qi signed-off-by:
+                                    then
+                                      continue
+                                    else
+                                      echo "FAIL: Missing Signed-Off Field"
+                                      echo "$m"
+                                      exit 1
+                                    fi
+                                done
+                                unset IFS;
+                            fi
+  Lint_website:
+    name: Lint website
+    runs-on:
+      - self-hosted
+      - master
+    needs: Check_for_Signed_Off_Commits
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: docker-compose -f docker/compose/run-lint.yaml up --build --exit-code-from lint-grid-docs
+  Build_website:
+    name: Build website
+    runs-on:
+      - self-hosted
+      - master
+    needs: Lint_website
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: "./ci/build-website production"
+  Publish_docker_image:
+    if: github.ref == 'refs/heads/main'
+    name: Publish docker image
+    runs-on:
+      - self-hosted
+      - master
+    needs: Build_website
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+#     # This item has no matching transformer
+#     - withDockerRegistry:
+#       - key: credentialsId
+#         value:
+#           isLiteral: true
+#           value: 464911a1-007a-4910-90c8-78ff16ba165e
+#       - key: url
+#         value:
+#           isLiteral: true
+#           value: ''
+  Post-Build:
+    if: always()
+    name: Post Build
+    runs-on:
+      - self-hosted
+      - master
+    needs:
+    - Check_Whitelist
+    - Check_for_Signed_Off_Commits
+    - Lint_website
+    - Build_website
+    - Publish_docker_image
+    steps:
+    - name: sh
+      shell: bash
+      run: docker-compose -f docker/compose/run-lint.yaml down
+      if: always()
+    - name: sh
+      shell: bash
+      run: docker-compose -f docker-compose.yaml down
+      if: always()
