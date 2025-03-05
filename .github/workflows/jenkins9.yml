@@ -1,0 +1,31 @@
+name: jenkins9
+on:
+  workflow_dispatch:
+env:
+  GOVUK_DOCKER_DIR: "."
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+#     # 'script' was not transformed because there is no suitable equivalent in GitHub Actions
+#     - name: script
+#       arguments:
+#       - key: scriptBlock
+#         value:
+#           isLiteral: true
+#           value: |-
+#             govuk.buildProject(
+#                                     skipDeployToIntegration: true,
+#                                     rubyLintDiff: false,
+#                                     overrideTestTask: {
+#                                         stage("Run tests") {
+#                                             sh """
+#                                                 gem install bundler
+#                                                 bundle install
+#                                                """
+#                                             sh "make test"
+#                                         }
+#                                     }
+#                                 )
