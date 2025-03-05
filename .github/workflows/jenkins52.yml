@@ -1,0 +1,287 @@
+name: jenkins52
+on:
+  workflow_dispatch:
+env:
+#   # This item has no matching transformer
+#   JOB_NAME: ${"${{ github.workflow }}".replace("/", "-")}
+  GIT_SSL_NO_VERIFY: true
+  URL_TO_TEST: https://google.com
+  PR_GITHUB_USERNAME: labs-robot
+jobs:
+  Prepare_Environment:
+    name: Prepare Environment
+    runs-on:
+      - self-hosted
+      - master
+    defaults:
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: echo message
+      run: echo Setting up environment variables
+#     # 'script' was not transformed because there is no suitable equivalent in GitHub Actions
+#     - name: script
+#       arguments:
+#       - key: scriptBlock
+#         value:
+#           isLiteral: true
+#           value: |-
+#             env.OCP_API_SERVER = "${{ env.OPENSHIFT_API_URL }}"
+#                                 env.OCP_TOKEN = readFile('/var/run/secrets/kubernetes.io/serviceaccount/token').trim()
+#
+#                                 // Get the PR ID
+#                                 timeout(time: 1, unit: 'HOURS') {
+#                                     env.PR_ID = input(
+#                                             id: 'userInput', message: 'Which PR # do you want to test?', parameters: [
+#                                             [$class: 'StringParameterDefinition', description: 'PR #', name: 'pr']
+#                                     ])
+#                                     if (env.PR_ID == null || env.PR_ID == ""){
+#                                         error('PR_ID cannot be null or empty')
+#                                     }
+#                                 }
+#
+#                                 env.PR_CI_CD_PROJECT_NAME = "labs-ci-cd-pr-${{ env.PR_ID }}"
+#                                 env.PR_DEV_PROJECT_NAME = "labs-dev-pr-${{ env.PR_ID }}"
+#                                 env.PR_TEST_PROJECT_NAME = "labs-test-pr-${{ env.PR_ID }}"
+#
+#                                 env.PR_GITHUB_TOKEN = new String("oc get secret labs-robot-github-oauth-token --template='{{.data.password}}'".execute().text.minus("'").minus("'").decodeBase64())
+#                                 if (env.PR_GITHUB_TOKEN == null || env.PR_GITHUB_TOKEN == ""){
+#                                     error('PR_GITHUB_TOKEN cannot be null or empty')
+#                                 }
+#                                 env.USER_PASS = "${{ env.PR_GITHUB_USERNAME }}:${{ env.PR_GITHUB_TOKEN }}"
+#
+#                                 env.PR_BRANCH = "pull/${{ env.PR_ID }}/head"
+#                                 env.PR_URI = "https://api.github.com/repos/rht-labs/labs-ci-cd/pulls/${{ env.PR_ID }}"
+#                                 env.PR_STATUS_URI = getGitHubPullRequest().statuses_url
+#
+#                                 echo env.PR_STATUS_URI
+  Clear_Existing_Projects:
+    name: Clear Existing Projects
+    runs-on:
+      - self-hosted
+      - master
+    needs: Prepare_Environment
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: echo message
+      run: echo Removing old PR projects if they exist to ensure a clean slate to test against
+#     # This item has no matching transformer
+#     - clearProjects: []
+  Spin_up_shared_ansible_slave_Merge_PR:
+    name: Spin up shared ansible slave-Merge PR
+    runs-on:
+      - self-hosted
+      - master
+    needs: Clear_Existing_Projects
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: echo message
+      run: echo Pushing build state to the PR
+#     # This item has no matching transformer
+#     - notifyGitHub:
+#         isLiteral: true
+#         value: |-
+#           {
+#                                               "state": "pending",
+#                                               "description": "ALL CI jobs are running...",
+#                                               "context": "Jenkins"
+#                                           }
+    - name: sh
+      shell: bash
+      run: |-
+        git config --global user.email "labs.robot@gmail.com"
+        git config --global user.name "Labs Robot"
+        git checkout master
+        git fetch origin ${{ env.PR_BRANCH }}:pr
+        git merge pr --ff
+  Spin_up_shared_ansible_slave_Apply_ci_for_ci_Inventory:
+    name: Spin up shared ansible slave-Apply ci-for-ci Inventory
+    runs-on:
+      - self-hosted
+      - master
+    needs: Spin_up_shared_ansible_slave_Merge_PR
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: echo message
+      run: echo Applying inventory
+    - name: sh
+      shell: bash
+      run: ansible-galaxy install -r requirements.yml --roles-path=roles
+    - name: sh
+      shell: bash
+      run: '"ansible-playbook site.yml -e ci_cd_namespace=${{ env.PR_CI_CD_PROJECT_NAME }} -e dev_namespace=${{ env.PR_DEV_PROJECT_NAME }} -e test_namespace=${{ env.PR_TEST_PROJECT_NAME }} -e role=admin"'
+    - name: snapshot post build job status
+      run: |-
+        echo "success=${{ job.status == 'success' }}" >> $GITHUB_OUTPUT
+        echo "failure=${{ job.status == 'failure' }}" >> $GITHUB_OUTPUT
+      id: post_build
+#     # This item has no matching transformer
+#     - notifyGitHub:
+#         isLiteral: true
+#         value: |-
+#           {
+#                                                   "state": "failure",
+#                                                   "description": "job failed :(",
+#                                                   "context": "Apply Inventory"
+#                                               }
+#       if: steps.post_build.outputs.failure == 'true'
+#     # This item has no matching transformer
+#     - notifyGitHub:
+#         isLiteral: true
+#         value: |-
+#           {
+#                                                   "state": "success",
+#                                                   "description": "job completed :)",
+#                                                   "context": "Apply Inventory"
+#                                               }
+#       if: steps.post_build.outputs.success == 'true'
+  Verifying_CI_Builds:
+    name: Verifying CI Builds
+    runs-on:
+      - self-hosted
+      - master
+    needs: Spin_up_shared_ansible_slave_Apply_ci_for_ci_Inventory
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+#     # This item has no matching transformer
+#     - notifyGitHub:
+#         isLiteral: true
+#         value: |-
+#           {
+#                                   "state": "pending",
+#                                   "description": " job is running...",
+#                                   "context": "CI Builds"
+#                               }
+#     # This item has no matching transformer
+#     - node:
+#         isLiteral: true
+#         value: master
+    - name: snapshot post build job status
+      run: |-
+        echo "success=${{ job.status == 'success' }}" >> $GITHUB_OUTPUT
+        echo "failure=${{ job.status == 'failure' }}" >> $GITHUB_OUTPUT
+      id: post_build
+#     # This item has no matching transformer
+#     - notifyGitHub:
+#         isLiteral: true
+#         value: |-
+#           {
+#                                           "state": "failure",
+#                                           "description": "job failed :(",
+#                                           "context": "CI Builds"
+#                                       }
+#       if: steps.post_build.outputs.failure == 'true'
+#     # This item has no matching transformer
+#     - notifyGitHub:
+#         isLiteral: true
+#         value: |-
+#           {
+#                                           "state": "success",
+#                                           "description": "job completed :)",
+#                                           "context": "CI Builds"
+#                                       }
+#       if: steps.post_build.outputs.success == 'true'
+  Verifying_CI_Deploys:
+    name: Verifying CI Deploys
+    runs-on:
+      - self-hosted
+      - master
+    needs: Verifying_CI_Builds
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+#     # This item has no matching transformer
+#     - notifyGitHub:
+#         isLiteral: true
+#         value: |-
+#           {
+#                                   "state": "pending",
+#                                   "description": " job is running...",
+#                                   "context": "CI Deploys"
+#                               }
+#     # This item has no matching transformer
+#     - node:
+#         isLiteral: true
+#         value: master
+    - name: snapshot post build job status
+      run: |-
+        echo "success=${{ job.status == 'success' }}" >> $GITHUB_OUTPUT
+        echo "failure=${{ job.status == 'failure' }}" >> $GITHUB_OUTPUT
+      id: post_build
+#     # This item has no matching transformer
+#     - notifyGitHub:
+#         isLiteral: true
+#         value: |-
+#           {
+#                                           "state": "failure",
+#                                           "description": "job failed :(",
+#                                           "context": "CI Deploys"
+#                                       }
+#       if: steps.post_build.outputs.failure == 'true'
+#     # This item has no matching transformer
+#     - notifyGitHub:
+#         isLiteral: true
+#         value: |-
+#           {
+#                                           "state": "success",
+#                                           "description": "job completed :)",
+#                                           "context": "CI Deploys"
+#                                       }
+#       if: steps.post_build.outputs.success == 'true'
+  Clear_Existing_Projects_on_Successful_Job:
+    name: Clear Existing Projects on Successful Job
+    runs-on:
+      - self-hosted
+      - master
+    needs: Verifying_CI_Deploys
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: echo message
+      run: echo Removing old PR projects if they exist to ensure a clean slate to test against
+#     # This item has no matching transformer
+#     - clearProjects: []
+  Post-Build:
+    if: always()
+    name: Post Build
+    runs-on:
+      - self-hosted
+      - master
+    needs:
+    - Prepare_Environment
+    - Clear_Existing_Projects
+    - Spin_up_shared_ansible_slave_Merge_PR
+    - Spin_up_shared_ansible_slave_Apply_ci_for_ci_Inventory
+    - Verifying_CI_Builds
+    - Verifying_CI_Deploys
+    - Clear_Existing_Projects_on_Successful_Job
+    steps:
+    - name: snapshot post build workflow status
+      run: |-
+        echo "success=${{ contains(needs.*.result,'success') && !contains(needs.*.result,'cancelled') && !contains(needs.*.result,'failure') }}" >> $GITHUB_OUTPUT
+        echo "failure=${{ contains(needs.*.result,'failure') && !contains(needs.*.result,'cancelled') }}" >> $GITHUB_OUTPUT
+      id: post_build
+#     # This item has no matching transformer
+#     - notifyGitHub:
+#         isLiteral: true
+#         value: |-
+#           {
+#                                   "state": "failure",
+#                                   "description": "master ci job failed :(",
+#                                   "context": "Jenkins"
+#                               }
+#       if: steps.post_build.outputs.failure == 'true'
+#     # This item has no matching transformer
+#     - notifyGitHub:
+#         isLiteral: true
+#         value: |-
+#           {
+#                                   "state": "success",
+#                                   "description": "master ci job completed :)",
+#                                   "context": "Jenkins"
+#                               }
+#       if: steps.post_build.outputs.success == 'true'
