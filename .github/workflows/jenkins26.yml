@@ -1,0 +1,58 @@
+name: jenkins26
+on:
+  workflow_dispatch:
+env:
+#   # This item has no matching transformer
+#   NCLOUD_ACCESS_KEY_ID:
+#   # This item has no matching transformer
+#   NCLOUD_SECRET_KEY:
+jobs:
+  Test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+#     # 'script' was not transformed because there is no suitable equivalent in GitHub Actions
+#     - name: script
+#       arguments:
+#       - key: scriptBlock
+#         value:
+#           isLiteral: true
+#           value: |-
+#             dir('be') {
+#                                    echo 'Test'
+#                                     sh './gradlew clean test'
+#                                 }
+  Build:
+    runs-on: ubuntu-latest
+    needs: Test
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+#     # 'script' was not transformed because there is no suitable equivalent in GitHub Actions
+#     - name: script
+#       arguments:
+#       - key: scriptBlock
+#         value:
+#           isLiteral: true
+#           value: |-
+#             dir('be') {
+#                                     echo 'build'
+#                                     sh 'docker build -t jshop.kr.ncr.ntruss.com/jshop:v1.0.0 .'
+#                                 }
+  NCR_Push:
+    runs-on: ubuntu-latest
+    needs: Build
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+#     # 'script' was not transformed because there is no suitable equivalent in GitHub Actions
+#     - name: script
+#       arguments:
+#       - key: scriptBlock
+#         value:
+#           isLiteral: true
+#           value: |-
+#             echo 'push'
+#                                 sh 'echo $NCLOUD_SECRET_KEY | docker login jshop.kr.ncr.ntruss.com -u ${{ env.NCLOUD_ACCESS_KEY_ID }} --password-stdin'
+#                                 sh 'docker push jshop.kr.ncr.ntruss.com/jshop:v1.0.0'
