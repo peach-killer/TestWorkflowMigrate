@@ -1,0 +1,32 @@
+name: test-parallel
+on:
+  workflow_dispatch:
+jobs:
+  Non_Sequential_Stage:
+    name: Non-Sequential Stage
+    runs-on:
+      - self-hosted
+      - for-non-sequential
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: echo message
+      run: echo On Non-Sequential Stage
+  Sequential_In_Sequential_1:
+    name: Sequential-In Sequential 1
+    runs-on: ubuntu-latest
+    needs: Non_Sequential_Stage
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: echo message
+      run: echo In Sequential 1
+  Sequential_In_Sequential_2:
+    name: Sequential-In Sequential 2
+    runs-on: ubuntu-latest
+    needs: Sequential_In_Sequential_1
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: echo message
+      run: echo In Sequential 2
