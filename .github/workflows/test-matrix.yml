@@ -1,0 +1,7 @@
+name: test-matrix
+on:
+  workflow_dispatch:
+    inputs:
+      PLATFORM_FILTER:
+        required: true
+        description: 'Run on specific platform (Valid options: all, linux, windows, mac)'
