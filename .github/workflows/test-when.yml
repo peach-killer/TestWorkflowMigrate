@@ -1,0 +1,36 @@
+name: test-when
+on:
+  workflow_dispatch:
+jobs:
+  Example_Deploy2:
+    if: # Unsupported condition(s) [environment]
+#         github.ref == 'refs/heads/production'
+    name: Example Deploy2
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: echo message
+      run: echo Deploying
+  Example_Build:
+    if:
+#       # Unsupported condition(s) [allOf]
+    name: Example Build
+    runs-on: ubuntu-latest
+    needs: Example_Deploy2
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: echo message
+      run: echo Building
+  Example_Deploy:
+    if:
+#       # Unsupported condition(s) [allOf]
+    name: Example Deploy
+    runs-on: ubuntu-latest
+    needs: Example_Build
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: echo message
+      run: echo Deploying
