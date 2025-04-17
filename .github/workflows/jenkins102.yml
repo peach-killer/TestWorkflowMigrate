@@ -1,0 +1,25 @@
+name: jenkins102
+on:
+  workflow_dispatch:
+jobs:
+  Example:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: echo message
+      run: 'echo He said: "// This is not a comment'
+    - name: echo message
+      run: 'echo Path: C:\'
+    - name: echo message
+      run: 'echo XXX: \"YYY'
+  Post-Build:
+    if: always()
+    name: Post Build
+    runs-on: ubuntu-latest
+    needs:
+    - Example
+    steps:
+    - name: echo message
+      run: echo I will always say Hello again!
+      if: always()
