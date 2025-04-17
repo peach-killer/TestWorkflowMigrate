@@ -1,0 +1,66 @@
+name: jenkins107
+on:
+  workflow_dispatch:
+jobs:
+  Example_Build:
+    name: Example Build
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: echo message
+      run: echo Hello World
+  Example_Deploy:
+    if: github.ref == 'refs/heads/production'
+    name: Example Deploy
+    runs-on: ubuntu-latest
+    needs: Example_Build
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: echo message
+      run: echo Deploying
+  Example_Deploy2:
+    if: # Unsupported condition(s) [environment]
+#         github.ref == 'refs/heads/production'
+    name: Example Deploy2
+    runs-on: ubuntu-latest
+    needs: Example_Deploy
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: echo message
+      run: echo Deploying
+  Example_Deploy3:
+    if:
+#       # Unsupported condition(s) [allOf]
+    name: Example Deploy3
+    runs-on: ubuntu-latest
+    needs: Example_Deploy2
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: echo message
+      run: echo Deploying
+  Example_Deploy4:
+    if: # Unsupported condition(s) [anyOf]
+#         github.ref == 'refs/heads/production'
+    name: Example Deploy4
+    runs-on: ubuntu-latest
+    needs: Example_Deploy3
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: echo message
+      run: echo Deploying
+  Example_Deploy5:
+    if:
+#       # Unsupported condition(s) [expression, anyOf]
+    name: Example Deploy5
+    runs-on: ubuntu-latest
+    needs: Example_Deploy4
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: echo message
+      run: echo Deploying
