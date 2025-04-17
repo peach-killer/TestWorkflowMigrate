@@ -1,0 +1,19 @@
+name: jenkins105
+on:
+  schedule:
+  - cron: 13 */4 * * 1-5
+  # The following PollSCM schedule was transformed and may behave differently than in Jenkins.
+  # In Actions, this workflow will run on this schedule regardless of any changes whereas in Jenkins a job will only run if there are changes.
+  - cron: 44 */4 * * 1-5
+#   # This item has no matching transformer
+#   upstream:
+#     isLiteral: true
+#     value: job1,job2
+jobs:
+  Example:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: echo message
+      run: echo Hello World
