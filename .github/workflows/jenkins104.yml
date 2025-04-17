@@ -1,0 +1,29 @@
+name: jenkins104
+on:
+  workflow_dispatch:
+    inputs:
+      PERSON:
+        required: false
+        description: Who should I say hello to?
+        default: Mr Jenkins
+      BIOGRAPHY:
+        required: false
+        description: Enter some information about the person
+        default: ''
+      CHOICE:
+        required: true
+        description: 'Pick something (Valid options: One, Two, Three)'
+jobs:
+  Example:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: echo message
+      run: echo "Hello ${{ inputs.PERSON }}"
+    - name: echo message
+      run: 'echo "Biography: ${{ inputs.BIOGRAPHY }}"'
+    - name: echo message
+      run: 'echo "Toggle: ${{ inputs.TOGGLE }}"'
+    - name: echo message
+      run: 'echo "Choice: ${{ inputs.CHOICE }}"'
