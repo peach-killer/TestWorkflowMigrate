@@ -1,0 +1,12 @@
+name: jenkins105
+on:
+  schedule:
+  - cron: 2 */4 * * 1-5
+jobs:
+  Example:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: echo message
+      run: echo Hello World
