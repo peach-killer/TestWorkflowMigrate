@@ -1,0 +1,29 @@
+name: jenkins103
+on:
+  workflow_dispatch:
+env:
+  CC: clang
+  APP_ENV: production
+  DEPLOY_SERVER: deploy.example.com
+  VAR1: value1
+  VAR2: value2
+  API_KEY: 12345-ABCDE
+  COMPCODE: INW
+  CRBUILDEXIT: 'TRUE'
+  CROPENMP: 'TRUE'
+  CR64BIT: 'TRUE'
+  MKL_DYNAMIC: 'FALSE'
+  MKL_NUM_THREADS: '1'
+jobs:
+  Example:
+    runs-on: ubuntu-latest
+    env:
+      AN_ACCESS_KEY: my-predefined-secret-text
+      MKL_DYNAMIC: 'TRUE'
+      MKL_NUM_THREADS: '123123'
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: printenv
