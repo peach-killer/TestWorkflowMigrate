@@ -1,0 +1,16 @@
+name: jenkins103
+on:
+  workflow_dispatch:
+env:
+  CC: clang
+jobs:
+  Example:
+    runs-on: ubuntu-latest
+    env:
+      AN_ACCESS_KEY: my-predefined-secret-text
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: sh
+      shell: bash
+      run: printenv
